@@ -11,7 +11,7 @@ const AiCreatorView: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // 🟩 NEU: Auswahl der gewünschten Trainingsarten
+  // 🟩 Auswahl der gewünschten Trainingsarten
   const [selectedTypes, setSelectedTypes] = useState<string[]>(['strength', 'metcon']);
   const toggleType = (type: string) => {
     setSelectedTypes(prev =>
@@ -46,11 +46,19 @@ const AiCreatorView: React.FC = () => {
     setGeneratedWod(null);
 
     try {
-      // 🟩 Hier: selectedTypes an die Funktion übergeben
       const result = await generateWod(goal, equipment, duration, focus, selectedTypes);
 
-      if (!result || !result.wod) {
-        throw new Error("Invalid WOD data from API");
+      // ✅ Flexible Validierung: erkennt auch strength/metcon/hiit/etc.
+      const hasWorkoutSection =
+        result?.wod ||
+        result?.strength ||
+        result?.metcon ||
+        result?.endurance ||
+        result?.hiit;
+
+      if (!result || !hasWorkoutSection) {
+        console.warn("⚠️ Missing expected workout fields in AI response:", result);
+        throw new Error("Incomplete or invalid workout data from API");
       }
 
       setGeneratedWod(result);
@@ -68,6 +76,7 @@ const AiCreatorView: React.FC = () => {
 
       {/* --- Input Section --- */}
       <div className="bg-secondary p-4 rounded-lg space-y-4">
+        {/* Zielbeschreibung */}
         <div>
           <label htmlFor="wod-goal" className="block text-sm font-medium text-text-dark mb-1">
             Describe your workout goal
@@ -82,6 +91,7 @@ const AiCreatorView: React.FC = () => {
           />
         </div>
 
+        {/* Dauer */}
         <div>
           <label htmlFor="wod-duration" className="block text-sm font-medium text-text-dark mb-1">
             Approximate Workout Duration (optional)
@@ -96,7 +106,7 @@ const AiCreatorView: React.FC = () => {
           />
         </div>
 
-        {/* --- Focus Areas --- */}
+        {/* Fokus */}
         <div>
           <label className="block text-sm font-medium text-text-dark mb-2">Focus Area (optional)</label>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
@@ -114,7 +124,7 @@ const AiCreatorView: React.FC = () => {
           </div>
         </div>
 
-        {/* --- Equipment --- */}
+        {/* Equipment */}
         <div>
           <label className="block text-sm font-medium text-text-dark mb-2">Available Equipment</label>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
@@ -132,7 +142,7 @@ const AiCreatorView: React.FC = () => {
           </div>
         </div>
 
-        {/* 🟩 NEU: Training Type Auswahl */}
+        {/* 🟩 Workout Type Auswahl */}
         <div>
           <label className="block text-sm font-medium text-text-dark mb-2">Workout Type</label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -172,30 +182,79 @@ const AiCreatorView: React.FC = () => {
       {error && <div className="bg-red-500/20 text-red-300 p-3 rounded-lg">{error}</div>}
 
       {/* --- Workout Result --- */}
-      {generatedWod && generatedWod.wod && (
+      {generatedWod && (
         <div className="space-y-6 animate-fade-in">
-          <div className="bg-secondary p-4 rounded-lg">
-            <h2 className="text-2xl font-bold text-accent">{generatedWod.wod.name}</h2>
-            <p className="text-sm text-text-dark font-semibold">
-              {generatedWod.wod.format} ({generatedWod.wod.duration})
-            </p>
-            <p className="mt-2 whitespace-pre-wrap">{generatedWod.wod.description}</p>
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-700 pt-4">
-              <div>
-                <h4 className="font-bold text-lg text-text-light">RX</h4>
-                <p className="text-text-dark whitespace-pre-wrap">
-                  {generatedWod.wod.scalingOptions?.rx || "—"}
-                </p>
-              </div>
-              <div>
-                <h4 className="font-bold text-lg text-text-light">Intermediate</h4>
-                <p className="text-text-dark whitespace-pre-wrap">
-                  {generatedWod.wod.scalingOptions?.intermediate || "—"}
-                </p>
-              </div>
+          {/* 🧘 Warm-up */}
+          {generatedWod.warmup && (
+            <div className="bg-secondary p-4 rounded-lg">
+              <h3 className="text-xl font-bold text-accent">
+                Warm-up ({generatedWod.warmup.duration || '—'})
+              </h3>
+              <p className="text-text-dark mt-1">{generatedWod.warmup.description}</p>
+              {generatedWod.warmup.details && (
+                <ul className="mt-2 list-disc list-inside space-y-1 text-text-light">
+                  {generatedWod.warmup.details.map((d: string, i: number) => (
+                    <li key={i}>{d}</li>
+                  ))}
+                </ul>
+              )}
             </div>
-          </div>
+          )}
 
+          {/* 🏋️ Strength */}
+          {generatedWod.strength && (
+            <div className="bg-secondary p-4 rounded-lg">
+              <h3 className="text-xl font-bold text-accent">Strength</h3>
+              <p className="text-sm text-text-dark mt-1">{generatedWod.strength.focus}</p>
+              <p className="text-text-light mt-1">{generatedWod.strength.sets}</p>
+              <p className="text-text-light mt-1">{generatedWod.strength.description}</p>
+            </div>
+          )}
+
+          {/* 🔥 Metcon */}
+          {generatedWod.metcon && (
+            <div className="bg-secondary p-4 rounded-lg">
+              <h2 className="text-2xl font-bold text-accent">{generatedWod.metcon.name}</h2>
+              <p className="text-sm text-text-dark font-semibold">
+                {generatedWod.metcon.format} ({generatedWod.metcon.duration})
+              </p>
+              <p className="mt-2 whitespace-pre-wrap">{generatedWod.metcon.description}</p>
+              {generatedWod.metcon.scalingOptions && (
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-700 pt-4">
+                  <div>
+                    <h4 className="font-bold text-lg text-text-light">RX</h4>
+                    <p className="text-text-dark whitespace-pre-wrap">
+                      {generatedWod.metcon.scalingOptions.rx || "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-lg text-text-light">Intermediate</h4>
+                    <p className="text-text-dark whitespace-pre-wrap">
+                      {generatedWod.metcon.scalingOptions.intermediate || "—"}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 🫀 Endurance */}
+          {generatedWod.endurance && (
+            <div className="bg-secondary p-4 rounded-lg">
+              <h3 className="text-xl font-bold text-accent">Endurance</h3>
+              <p className="text-text-light mt-1">{generatedWod.endurance.description}</p>
+            </div>
+          )}
+
+          {/* ⚡ HIIT */}
+          {generatedWod.hiit && (
+            <div className="bg-secondary p-4 rounded-lg">
+              <h3 className="text-xl font-bold text-accent">HIIT</h3>
+              <p className="text-text-light mt-1">{generatedWod.hiit.description}</p>
+            </div>
+          )}
+
+          {/* 🧘 Cool Down */}
           {generatedWod.cooldown && (
             <div className="bg-secondary p-4 rounded-lg">
               <h3 className="text-xl font-bold text-text-light">
