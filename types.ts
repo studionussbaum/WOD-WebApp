@@ -64,6 +64,19 @@ export const EQUIPMENT_LIST = [
     'None'
 ];
 
+export const FOCUS_AREAS = [
+    'Full Body',
+    'Legs',
+    'Shoulders',
+    'Chest',
+    'Back',
+    'Core',
+    'Endurance',
+    'Aerobic Capacity',
+    'Gymnastics',
+    'Weightlifting'
+];
+
 export interface AiWorkout {
     wod: {
         name: string;

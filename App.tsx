@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import useLocalStorage from './hooks/useLocalStorage';
 import { generateWod, getTrainingSuggestion } from './services/geminiService';
-import { Workout, WorkoutType, OneRepMax, ViewType, COMMON_LIFTS, EQUIPMENT_LIST, AiWorkout, User, USERS, AllUsersData, WorkoutComponent, WORKOUT_COMPONENT_TYPES, WorkoutComponentType } from './types';
+import { Workout, WorkoutType, OneRepMax, ViewType, COMMON_LIFTS, EQUIPMENT_LIST, AiWorkout, User, USERS, AllUsersData, WorkoutComponent, WORKOUT_COMPONENT_TYPES, WorkoutComponentType, FOCUS_AREAS } from './types';
 import { HomeIcon, PlusCircleIcon, CalendarIcon, DumbbellIcon, SparklesIcon, ChevronLeftIcon, ChevronRightIcon, TrashIcon, UserIcon } from './components/icons';
 
 // --- UTILITY FUNCTIONS ---
@@ -460,6 +460,7 @@ const AiCreatorView: React.FC<AiCreatorViewProps> = () => {
     const [goal, setGoal] = useState('');
     const [duration, setDuration] = useState('');
     const [equipment, setEquipment] = useState<string[]>(['None']);
+    const [focus, setFocus] = useState<string[]>([]);
     const [generatedWod, setGeneratedWod] = useState<AiWorkout | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
@@ -477,6 +478,16 @@ const AiCreatorView: React.FC<AiCreatorViewProps> = () => {
         });
     };
 
+    const handleFocusChange = (item: string) => {
+        setFocus(prev => {
+            if (prev.includes(item)) {
+                return prev.filter(f => f !== item);
+            } else {
+                return [...prev, item];
+            }
+        });
+    };
+
     const handleGenerate = async () => {
         if (!goal.trim()) {
             setError("Please describe your workout goal.");
@@ -486,7 +497,7 @@ const AiCreatorView: React.FC<AiCreatorViewProps> = () => {
         setError('');
         setGeneratedWod(null);
         try {
-            const result = await generateWod(goal, equipment, duration);
+            const result = await generateWod(goal, equipment, duration, focus);
             setGeneratedWod(result);
         } catch (err) {
             setError(err instanceof Error ? err.message : "An unknown error occurred.");
@@ -520,6 +531,16 @@ const AiCreatorView: React.FC<AiCreatorViewProps> = () => {
                         placeholder="e.g., '20 minutes', 'around 15 mins'"
                         className="w-full bg-primary border border-gray-600 rounded-md py-2 px-3 text-text-light focus:outline-none focus:ring-accent focus:border-accent"
                     />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-text-dark mb-2">Focus Area (optional)</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                        {FOCUS_AREAS.map(item => (
+                            <button key={item} onClick={() => handleFocusChange(item)} className={`p-2 text-sm rounded-md transition-colors ${focus.includes(item) ? 'bg-accent text-white' : 'bg-primary hover:bg-gray-700'}`}>
+                                {item}
+                            </button>
+                        ))}
+                    </div>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-text-dark mb-2">Available Equipment</label>

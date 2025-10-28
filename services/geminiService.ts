@@ -53,10 +53,14 @@ const WOD_SCHEMA = {
   required: ['wod', 'cooldown']
 };
 
-export const generateWod = async (goal: string, equipment: string[], duration: string) => {
+export const generateWod = async (goal: string, equipment: string[], duration: string, focus: string[]) => {
   const durationInstruction = duration.trim()
     ? `The high-intensity workout (WOD) should be approximately ${duration} long.`
     : 'The high-intensity workout (WOD) should be between 6 and 8 minutes long.';
+
+  const focusInstruction = focus.length > 0
+    ? `The workout should have a primary focus on the following areas: ${focus.join(', ')}.`
+    : '';
 
   const prompt = `
     You are an expert CrossFit and strength & conditioning coach. Your task is to generate a workout plan based on user-provided goals and equipment.
@@ -65,6 +69,7 @@ export const generateWod = async (goal: string, equipment: string[], duration: s
 
     User Goal: ${goal}
     Available Equipment: ${equipment.join(', ')}
+    ${focusInstruction}
 
     Generate a workout plan with two parts:
     1. ${durationInstruction}
