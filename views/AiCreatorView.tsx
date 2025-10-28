@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AiWorkout, EQUIPMENT_LIST, FOCUS_AREAS } from '../types';
-import { generateWod } from '../services/geminiService'; // Deine Service-Funktion
+import { generateWod } from '../services/openaiServices'; // Deine Service-Funktion
 
 const AiCreatorView: React.FC = () => {
   const [goal, setGoal] = useState('');
