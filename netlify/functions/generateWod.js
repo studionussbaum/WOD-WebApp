@@ -1,67 +1,93 @@
-import OpenAI from "openai";
+const OpenAI = require("openai");
 
-// 👇 OpenAI-Client wird global initialisiert (wichtig für Netlify!)
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-export async function handler(event) {
+exports.handler = async (event) => {
   try {
-    // Eingabedaten aus dem Request lesen
     const { goal, equipment, duration, focus } = JSON.parse(event.body || "{}");
 
-    // Prompt für das Workout
+    // --- Prüfen, ob API-Key gesetzt ist ---
+    if (!process.env.OPENAI_API_KEY) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "Missing OPENAI_API_KEY in environment." }),
+      };
+    }
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    // --- Prompt an das AI-Modell ---
     const prompt = `
-You are a professional CrossFit coach. Create a workout (WOD) based on:
-Goal: ${goal}
-Equipment: ${equipment && equipment.length > 0 ? equipment.join(", ") : "bodyweight only"}
-Duration: ${duration || "20"} minutes
-Focus areas: ${focus && focus.length > 0 ? focus.join(", ") : "full body"}
+You are an experienced CrossFit coach. Generate a complete, structured WOD JSON.
+Use the following details:
 
-Return a JSON response with this structure:
+Goal: ${goal || "General fitness"}
+Equipment: ${equipment && equipment.length > 0 ? equipment.join(", ") : "Bodyweight only"}
+Duration: ${duration || "Around 20 minutes"}
+Focus areas: ${focus && focus.length > 0 ? focus.join(", ") : "Full Body"}
+
+Return only JSON in this structure:
 {
-  "name": "Workout Title",
-  "format": "AMRAP / For Time / EMOM",
-  "duration": "10 minutes",
-  "description": "Detailed breakdown of the workout",
-  "rx": "RX standards for advanced athletes",
-  "intermediate": "Scaled version for intermediate athletes",
-  "cooldown": "Short cooldown routine"
-}
-`;
+  "wod": {
+    "name": "Workout Title",
+    "format": "AMRAP / For Time / EMOM",
+    "duration": "10-20 minutes",
+    "description": "Short description",
+    "scalingOptions": {
+      "rx": "RX version",
+      "intermediate": "Scaled version"
+    }
+  },
+  "cooldown": {
+    "duration": "5-10 minutes",
+    "stretches": [
+      { "name": "Couch stretch", "duration": "30 sec each leg" },
+      { "name": "Pigeon pose", "duration": "30 sec each side" }
+    ]
+  }
+}`;
 
-    // Anfrage an OpenAI
+    // --- Anfrage an OpenAI ---
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
-      temperature: 0.8,
     });
 
-    // Antworttext extrahieren
-    const result = completion.choices[0].message.content.trim();
+    const text = completion.choices[0].message.content;
 
-    // Versuch, JSON aus Text zu parsen
-    let parsed;
+    // --- JSON sicher parsen ---
+    let json;
     try {
-      parsed = JSON.parse(result);
+      json = JSON.parse(text);
     } catch {
-      parsed = { raw: result };
+      json = {
+        error: "Invalid JSON from AI",
+        raw: text,
+        fallback: {
+          wod: {
+            name: "AI WOD Example",
+            format: "AMRAP",
+            duration: "15 minutes",
+            description: "5 Rounds for AMRAP: 10 Burpees, 20 Air Squats, 200m Run",
+            scalingOptions: {
+              rx: "As described",
+              intermediate: "Reduce rounds or reps by 50%",
+            },
+          },
+          cooldown: {
+            duration: "5 minutes",
+            stretches: [
+              { name: "Pigeon stretch", duration: "30 sec each side" },
+              { name: "Couch stretch", duration: "30 sec each leg" },
+            ],
+          },
+        },
+      };
     }
 
-    // Erfolgreiche Antwort zurückgeben
     return {
       statusCode: 200,
-      body: JSON.stringify(parsed),
+      body: JSON.stringify(json),
     };
   } catch (error) {
-    console.error("❌ OpenAI Function Error:", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        error: error.message,
-        hint:
-          "Make sure OPENAI_API_KEY is defined in Netlify → Site Settings → Environment Variables.",
-      }),
-    };
-  }
-}
+    console.error("O
