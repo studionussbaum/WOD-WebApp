@@ -1,0 +1,5 @@
+{
+  "name": "CrossFit WOD Logger & AI Creator",
+  "description": "A comprehensive tool to log, track, and search your CrossFit-style workouts. Features a calendar view, 1-Rep-Max tracking, and an AI-powered workout creator to generate new, challenging routines based on your goals and available equipment.",
+  "requestFramePermissions": []
+}
