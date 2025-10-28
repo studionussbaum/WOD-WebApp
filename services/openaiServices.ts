@@ -104,4 +104,7 @@ export const getTrainingSuggestion = async (workouts: Workout[]) => {
 
     return "No suggestion available right now. Take a rest day and come back stronger!";
   } catch (error) {
-    console.error("🔥 Unexpected error fetching training suggest
+    console.error("🔥 Unexpected error fetching training suggestion:", error);
+    return "AI suggestion unavailable — please check your connection.";
+  }
+};
