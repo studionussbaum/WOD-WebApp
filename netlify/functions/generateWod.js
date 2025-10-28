@@ -1,6 +1,6 @@
-const OpenAI = require("openai");
+import OpenAI from "openai";
 
-exports.handler = async (event) => {
+export const handler = async (event) => {
   console.log("📩 Incoming request to generateWod...");
 
   try {
