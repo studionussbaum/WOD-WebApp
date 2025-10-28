@@ -5,10 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CrossFit WOD Logger & AI Creator</title>
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="./vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
 
-    <!-- TailwindCSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -27,10 +25,6 @@
       };
     </script>
 
-    <!-- CSS -->
-    <link rel="stylesheet" href="./index.css" />
-
-    <!-- React + GenAI imports -->
     <script type="importmap">
     {
       "imports": {
@@ -42,11 +36,10 @@
     }
     </script>
   </head>
-
   <body class="bg-primary text-text-light">
     <div id="root"></div>
 
-    <!-- JS bundle from Vite build -->
-    <script type="module" crossorigin src="./assets/index-pctuSY7o.js"></script>
+    <!-- Hier: kein fixer Build-Pfad mehr -->
+    <script type="module" src="/src/index.tsx"></script>
   </body>
 </html>
