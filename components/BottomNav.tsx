@@ -10,10 +10,11 @@ interface BottomNavProps {
 const BottomNav: React.FC<BottomNavProps> = ({ currentView, setView }) => {
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: <HomeIcon /> },
+        { id: 'ai_creator', label: 'AI Creator', icon: <SparklesIcon /> },
         { id: 'log', label: 'Log WOD', icon: <PlusCircleIcon /> },
         { id: 'history', label: 'History', icon: <CalendarIcon /> },
         { id: 'maxes', label: '1-Rep Max', icon: <DumbbellIcon /> },
-        { id: 'ai_creator', label: 'AI Creator', icon: <SparklesIcon /> },
+        
     ];
 
     return (
