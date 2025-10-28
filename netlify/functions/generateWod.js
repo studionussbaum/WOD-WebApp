@@ -1,14 +1,16 @@
-import OpenAI from "openai";
+const OpenAI = require("openai");
 
-export const handler = async (event) => {
+exports.handler = async (event) => {
   console.log("📩 Incoming request to generateWod...");
 
   try {
+    // ----------------------------
+    // 1️⃣ Eingabedaten parsen
+    // ----------------------------
     const { goal, equipment, duration, focus } = JSON.parse(event.body || "{}");
 
-    // --- Sicherheits-Check für API-Key ---
     if (!process.env.OPENAI_API_KEY) {
-      console.error("❌ Missing OpenAI API Key!");
+      console.error("❌ Missing OPENAI_API_KEY in environment!");
       return {
         statusCode: 500,
         body: JSON.stringify({ error: "Missing OPENAI_API_KEY in environment." }),
@@ -17,21 +19,25 @@ export const handler = async (event) => {
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    // --- Prompt mit klarer Equipment-Verwendung ---
+    // ----------------------------
+    // 2️⃣ Prompt vorbereiten
+    // ----------------------------
     const prompt = `
 You are an experienced CrossFit coach.
 
-Create a complete WOD (Workout of the Day) using the following details:
+Create a complete, structured WOD (Workout of the Day) using the following details:
 
-🏋️ Goal: ${goal || "General Fitness"}
+🏋️ Goal: ${goal || "General fitness"}
 🧰 Equipment available: ${equipment && equipment.length ? equipment.join(", ") : "Bodyweight only"}
 ⏱ Duration: ${duration || "20 minutes"}
 💪 Focus areas: ${focus && focus.length ? focus.join(", ") : "Full Body"}
 
 ⚙️ Rules:
 - Always include the listed equipment.
-- Return ONLY valid JSON in this structure (no explanation text!):
+- Focus on functional movements.
+- Return ONLY valid JSON — no commentary or markdown.
 
+JSON structure:
 {
   "wod": {
     "name": "Workout Title",
@@ -54,6 +60,9 @@ Create a complete WOD (Workout of the Day) using the following details:
 }
 `;
 
+    // ----------------------------
+    // 3️⃣ Anfrage an OpenAI senden
+    // ----------------------------
     console.log("🧠 Sending prompt to OpenAI...");
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -62,16 +71,18 @@ Create a complete WOD (Workout of the Day) using the following details:
     });
 
     const text = completion.choices?.[0]?.message?.content?.trim();
-    if (!text) throw new Error("Empty response from OpenAI");
+    if (!text) throw new Error("Empty response from OpenAI.");
 
     console.log("✅ Raw AI response received.");
 
-    // --- JSON Parsing mit Fallback ---
+    // ----------------------------
+    // 4️⃣ JSON sicher parsen + Fallback
+    // ----------------------------
     let json;
     try {
       json = JSON.parse(text);
     } catch (err) {
-      console.warn("⚠️ AI returned invalid JSON. Using fallback.");
+      console.warn("⚠️ Invalid JSON from AI — using fallback.");
       json = {
         error: "Invalid JSON from AI",
         raw: text,
@@ -79,7 +90,7 @@ Create a complete WOD (Workout of the Day) using the following details:
           name: "Fallback WOD",
           format: "AMRAP",
           duration: "15 minutes",
-          description: "5 Rounds of 10 Burpees, 20 Squats, 200m Run",
+          description: "5 Rounds: 10 Burpees, 20 Air Squats, 200 m Run",
           movements: ["Burpees", "Air Squats", "Run"],
           scalingOptions: {
             rx: "As described",
@@ -96,8 +107,24 @@ Create a complete WOD (Workout of the Day) using the following details:
       };
     }
 
+    // ----------------------------
+    // 5️⃣ Erfolgsausgabe
+    // ----------------------------
     console.log("🎯 WOD generation successful.");
     return {
       statusCode: 200,
       body: JSON.stringify(json),
     };
+  } catch (error) {
+    // ----------------------------
+    // 6️⃣ Fehlerbehandlung
+    // ----------------------------
+    console.error("🔥 Server error in generateWod:", error);
+    return {
+      statusCode: 502,
+      body: JSON.stringify({
+        error: "Server error: " + (error.message || "Unknown issue"),
+      }),
+    };
+  }
+};
