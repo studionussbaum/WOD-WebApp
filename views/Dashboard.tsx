@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Workout, OneRepMax, COMMON_LIFTS } from '../types';
-import { getTrainingSuggestion } from '../services/geminiService';
+import { getTrainingSuggestion } from '../services/openaiService';
 import WorkoutCard from '../components/WorkoutCard';
 
 interface DashboardProps {
