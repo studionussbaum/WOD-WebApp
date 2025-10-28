@@ -99,7 +99,7 @@ export interface AiWorkout {
 
 export type User = 'Eugen' | 'Julia' | 'Guest';
 
-export const USERS: User[] = ['Hase', 'Maus', 'Guest'];
+export const USERS: User[] = ['Eugen', 'Julia', 'Guest'];
 
 export interface UserData {
   workouts: Workout[];
