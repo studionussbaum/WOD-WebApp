@@ -7,13 +7,14 @@ export const generateWod = async (
   goal: string,
   equipment: string[],
   duration: string,
-  focus: string[]
+  focus: string[],
+  selectedTypes: string[] // ⬅️ NEU hinzugefügt
 ) => {
   try {
     const response = await fetch("/.netlify/functions/generateWod", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ goal, equipment, duration, focus }),
+      body: JSON.stringify({ goal, equipment, duration, focus, selectedTypes }),
     });
 
     if (!response.ok) {
@@ -34,7 +35,15 @@ export const generateWod = async (
       throw new Error(data.error);
     }
 
-    if (!data?.wod || !data?.cooldown) {
+    // 🟡 FLEXIBLE PRÜFUNG: Akzeptiere strength/metcon/endurance/hiit statt nur wod
+    const hasWorkoutSection =
+      data?.wod ||
+      data?.strength ||
+      data?.metcon ||
+      data?.endurance ||
+      data?.hiit;
+
+    if (!hasWorkoutSection || !data?.cooldown) {
       console.warn("⚠️ Missing expected fields in AI response:", data);
       throw new Error("Incomplete workout data from AI.");
     }
@@ -42,22 +51,46 @@ export const generateWod = async (
     return data;
   } catch (error) {
     console.error("🔥 Error generating WOD:", error);
+
+    // 🧩 Robuster Fallback für Anzeige im Frontend
     return {
-      wod: {
-        name: "Fallback WOD",
+      warmup: {
+        description: "General warm-up to activate all major muscle groups.",
+        duration: "8 minutes",
+        rounds: "2 rounds",
+        details: [
+          "1 min light cardio (bike or jump rope)",
+          "10 Air Squats",
+          "10 Push-ups",
+          "10 Lunges",
+        ],
+      },
+      strength: {
+        focus: "Fallback Strength Block",
+        sets: "5x5",
+        load: "Moderate weight (~70% 1RM)",
+        description: "Use controlled tempo and full range of motion.",
+      },
+      metcon: {
+        name: "Fallback Metcon",
         format: "AMRAP",
         duration: "15 minutes",
-        description: "5 rounds: 10 burpees, 20 air squats, 200m run",
+        description: "15 min AMRAP: 10 Burpees, 20 Air Squats, 200m Run",
+        movements: [
+          { name: "Burpees", reps: "10", load: "-", equipment: [] },
+          { name: "Air Squats", reps: "20", load: "-", equipment: [] },
+          { name: "Run", reps: "200m", load: "-", equipment: [] },
+        ],
         scalingOptions: {
-          rx: "As written",
-          intermediate: "Reduce reps by 30%",
+          rx: "As described",
+          intermediate: "Reduce reps by 25%",
         },
       },
       cooldown: {
         duration: "5 minutes",
         stretches: [
-          { name: "Pigeon pose", duration: "30 sec each side" },
-          { name: "Couch stretch", duration: "30 sec each leg" },
+          { name: "Pigeon Pose", duration: "30 sec each side" },
+          { name: "Couch Stretch", duration: "30 sec each leg" },
         ],
       },
       fallback: true,
