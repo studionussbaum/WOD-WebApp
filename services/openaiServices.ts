@@ -31,7 +31,7 @@ export const generateWod = async (
 // ----------------------------
 export const getTrainingSuggestion = async (workouts: Workout[]) => {
   try {
-    const res = await fetch("/.netlify/functions/getTrainingSuggestion", {
+    const res = await fetch("/.netlify/functions/trainingSuggestion", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ workouts }),
