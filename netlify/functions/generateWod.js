@@ -90,4 +90,10 @@ Return only JSON in this structure:
       body: JSON.stringify(json),
     };
   } catch (error) {
-    console.error("O
+    console.error("OpenAI error:", error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: error.message }),
+    };
+  }
+};
