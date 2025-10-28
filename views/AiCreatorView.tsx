@@ -11,6 +11,14 @@ const AiCreatorView: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // 🟩 NEU: Auswahl der gewünschten Trainingsarten
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(['strength', 'metcon']);
+  const toggleType = (type: string) => {
+    setSelectedTypes(prev =>
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
+  };
+
   const handleEquipmentChange = (item: string) => {
     setEquipment(prev => {
       if (item === 'None') return ['None'];
@@ -38,9 +46,9 @@ const AiCreatorView: React.FC = () => {
     setGeneratedWod(null);
 
     try {
-      const result = await generateWod(goal, equipment, duration, focus);
+      // 🟩 Hier: selectedTypes an die Funktion übergeben
+      const result = await generateWod(goal, equipment, duration, focus, selectedTypes);
 
-      // --- Sicherstellen, dass WOD korrekt ist ---
       if (!result || !result.wod) {
         throw new Error("Invalid WOD data from API");
       }
@@ -124,6 +132,33 @@ const AiCreatorView: React.FC = () => {
           </div>
         </div>
 
+        {/* 🟩 NEU: Training Type Auswahl */}
+        <div>
+          <label className="block text-sm font-medium text-text-dark mb-2">Workout Type</label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {[
+              { id: 'strength', label: 'Strength' },
+              { id: 'metcon', label: 'Metcon' },
+              { id: 'endurance', label: 'Endurance' },
+              { id: 'hiit', label: 'HIIT' },
+            ].map(type => (
+              <label
+                key={type.id}
+                className="flex items-center space-x-2 bg-primary p-2 rounded cursor-pointer hover:bg-accent/20"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedTypes.includes(type.id)}
+                  onChange={() => toggleType(type.id)}
+                  className="accent-accent"
+                />
+                <span className="text-text-light text-sm">{type.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* --- Generate Button --- */}
         <button
           onClick={handleGenerate}
           disabled={isLoading}
