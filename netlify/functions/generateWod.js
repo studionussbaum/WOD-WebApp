@@ -30,7 +30,9 @@ exports.handler = async (event) => {
 
     // ---------- DYNAMISCHER PROMPT ----------
     const prompt = `
-You are an experienced CrossFit coach. 
+You are an experienced CrossFit coach and time-structured programmer.
+Your task: create a full workout that fits into a clearly defined total time window.
+
 Create a structured training session that includes:
 🔥 Warm-up
 ${selectedText}
@@ -39,25 +41,31 @@ ${selectedText}
 💬 USER INPUT:
 - Goal: ${goal || "General fitness"}
 - Equipment available: ${Array.isArray(equipment) && equipment.length ? equipment.join(", ") : "Bodyweight only"}
-- Duration: ${duration || "45 minutes"}
+- Target total duration: ${duration || "45"} minutes (tolerance ±5 minutes)
 - Focus areas: ${Array.isArray(focus) && focus.length ? focus.join(", ") : "Full Body"}
 
 🎯 RULES:
+- The total duration (sum of all sections) MUST be between ${duration - 5} and ${duration + 5} minutes.
+- Estimate section durations realistically:
+  • 2–3 s per air squat, push-up or sit-up
+  • 3–4 s per burpee
+  • 45 s per 200 m run or 10 cal bike
+- Adjust reps, rounds, or time caps so the total fits in the target duration window.
 - Warm-up must prepare the same muscle groups and movement patterns as used later.
-- Use EVERY listed equipment item at least once in warm-up, strength, metcon, endurance or hiit.
-- The Strength/Metcon/Endurance/HIIT sections MUST be complete with sets, reps, loads (kg/cals), and format.
-- Scaling options (rx & intermediate) must have **exact** kg/reps/cals.
-- Duration fields must be present.
-- Return **only valid JSON**, no markdown or commentary.
+- Use EVERY listed equipment item at least once in warm-up, strength, metcon, endurance, or hiit.
+- Include section-specific durations in minutes.
+- Always add an overall field "totalDurationEstimate" (in minutes).
+- Use RX & intermediate scaling with concrete numbers (kg/reps/cals).
+- Output **only valid JSON**, no markdown, comments, or text outside JSON.
 
-⚙️ OUTPUT FORMAT (dynamically include only chosen sections):
+⚙️ OUTPUT FORMAT:
 {
   "warmup": {
     "description": "Short overview",
-    "duration": "string",
+    "duration": "string (e.g. '8 minutes')",
     "rounds": "string",
     "details": [
-      "Light ${equipment.includes("Assault Bike") ? "Assault Bike" : "Cardio"} 1 min",
+      "Light cardio 1 min",
       "10 ${equipment.includes("Kettlebell") ? "Kettlebell Swings" : "Air Squats"}",
       "Dynamic stretches for ${focus.join(", ")}"
     ]
@@ -66,12 +74,13 @@ ${selectedText}
     "focus": "string (e.g. Front Squat)",
     "sets": "e.g. 5x5",
     "load": "kg or % of 1RM",
+    "duration": "string (e.g. '12 minutes')",
     "description": "Short tip or progression"
   },` : ""}
   ${selectedTypes.includes("metcon") ? `"metcon": {
     "name": "Workout Title",
     "format": "AMRAP | For Time | EMOM",
-    "duration": "string",
+    "duration": "string (e.g. '18 minutes')",
     "description": "Full single-line instruction with reps, rounds, and loads",
     "movements": [
       { "name": "string", "reps": "number or pattern", "load": "kg/cal", "equipment": ["string"] }
@@ -82,14 +91,14 @@ ${selectedText}
     }
   },` : ""}
   ${selectedTypes.includes("endurance") ? `"endurance": {
-    "description": "E.g., 3 rounds of 1 km Row, 400m Run, 30 Air Squats",
-    "duration": "string (e.g., 30 minutes steady work)",
-    "intensity": "string (e.g., 70-80% pace)"
+    "description": "E.g., 3 rounds of 1 km Row, 400 m Run, 30 Air Squats",
+    "duration": "string (e.g., '30 minutes steady work')",
+    "intensity": "string (e.g., '70–80% pace')"
   },` : ""}
   ${selectedTypes.includes("hiit") ? `"hiit": {
-    "description": "E.g., 8 rounds: 20s work / 10s rest - alternating Assault Bike and Burpees",
-    "duration": "string (e.g., 16 minutes)",
-    "intensity": "string (e.g., 90% effort)",
+    "description": "E.g., 8 rounds: 20 s work / 10 s rest – alternating Assault Bike & Burpees",
+    "duration": "string (e.g., '16 minutes')",
+    "intensity": "string (e.g., '90% effort')",
     "notes": "Short motivational note"
   },` : ""}
   "cooldown": {
@@ -98,7 +107,8 @@ ${selectedText}
       { "name": "string", "duration": "string" },
       { "name": "string", "duration": "string" }
     ]
-  }
+  },
+  "totalDurationEstimate": "number (total estimated minutes of full workout)"
 }`;
 
     // ---------- OpenAI-Aufruf ----------
@@ -137,7 +147,8 @@ ${selectedText}
             strength: {
               focus: "Front Squat",
               sets: "5x5",
-              load: "Build to heavy set of 5",
+              load: "Build to heavy 5",
+              duration: "12 minutes",
               description: "Focus on bracing and upright torso.",
             },
           }),
@@ -149,10 +160,10 @@ ${selectedText}
               description:
                 "AMRAP (" +
                 (duration || "20 minutes") +
-                "): 12 Kettlebell Swings @ 24/16kg, 15 Wall Balls, 18/14 cal Assault Bike",
+                "): 12 Kettlebell Swings @ 24/16 kg, 15 Wall Balls, 18/14 cal Assault Bike",
               movements: [
-                { name: "Kettlebell Swings", reps: "12", load: "24/16kg", equipment: ["Kettlebell"] },
-                { name: "Wall Balls", reps: "15", load: "9/6kg", equipment: ["Medicine Ball"] },
+                { name: "Kettlebell Swings", reps: "12", load: "24/16 kg", equipment: ["Kettlebell"] },
+                { name: "Wall Balls", reps: "15", load: "9/6 kg", equipment: ["Medicine Ball"] },
                 { name: "Assault Bike", reps: "cal", load: "18/14 cal", equipment: ["Assault Bike"] }
               ],
               scalingOptions: {
@@ -167,7 +178,8 @@ ${selectedText}
               { name: "Pigeon Pose", duration: "30 sec each side" },
               { name: "Couch Stretch", duration: "30 sec each leg" }
             ]
-          }
+          },
+          totalDurationEstimate: duration || 40
         }),
       };
     }
@@ -196,6 +208,22 @@ ${selectedText}
           { name: "Couch Stretch", duration: "30 sec each leg" },
         ],
       };
+    }
+
+    // ---------- Dauerprüfung ----------
+    const targetDuration = Number(duration);
+    const totalEstimate = Number(result.totalDurationEstimate);
+
+    if (totalEstimate && Math.abs(totalEstimate - targetDuration) > 5) {
+      console.warn(`⏱️ Workout duration ${totalEstimate} min out of target range (${targetDuration} ± 5).`);
+      // 🔁 Optional: automatische Neugenerierung aktivieren
+      // const retryPrompt = prompt + "\n⚠️ The previous result exceeded the duration range. Please adjust reps/time to fit.";
+      // const retry = await openai.chat.completions.create({
+      //   model: "gpt-4o-mini",
+      //   temperature: 0.4,
+      //   messages: [{ role: "user", content: retryPrompt }],
+      // });
+      // result = JSON.parse(retry.choices?.[0]?.message?.content?.trim() || "{}");
     }
 
     // ---------- Response ----------
