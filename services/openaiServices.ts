@@ -6,9 +6,9 @@ import { Workout } from "../types";
 export const generateWod = async (
   goal: string,
   equipment: string[],
-  duration: string,
+  duration: number, // 🟩 jetzt Zahl statt string
   focus: string[],
-  selectedTypes: string[] // ⬅️ NEU hinzugefügt
+  selectedTypes: string[]
 ) => {
   try {
     const response = await fetch("/.netlify/functions/generateWod", {
@@ -35,7 +35,7 @@ export const generateWod = async (
       throw new Error(data.error);
     }
 
-    // 🟡 FLEXIBLE PRÜFUNG: Akzeptiere strength/metcon/endurance/hiit statt nur wod
+    // 🟡 FLEXIBLE PRÜFUNG: Akzeptiere strength/metcon/endurance/hiit
     const hasWorkoutSection =
       data?.wod ||
       data?.strength ||
@@ -48,7 +48,18 @@ export const generateWod = async (
       throw new Error("Incomplete workout data from AI.");
     }
 
-    return data;
+    // 🟢 Zusätzliche optionale Felder übernehmen, falls vorhanden
+    return {
+      ...data,
+      targetDuration: data.targetDuration || duration,
+      actualDuration:
+        data.actualDuration ||
+        data.metcon?.actualDuration ||
+        data.endurance?.actualDuration ||
+        data.hiit?.actualDuration ||
+        null,
+      durationWarning: data.durationWarning || null,
+    };
   } catch (error) {
     console.error("🔥 Error generating WOD:", error);
 
@@ -74,7 +85,8 @@ export const generateWod = async (
       metcon: {
         name: "Fallback Metcon",
         format: "AMRAP",
-        duration: "15 minutes",
+        targetDuration: duration,
+        actualDuration: duration,
         description: "15 min AMRAP: 10 Burpees, 20 Air Squats, 200m Run",
         movements: [
           { name: "Burpees", reps: "10", load: "-", equipment: [] },
@@ -93,6 +105,7 @@ export const generateWod = async (
           { name: "Couch Stretch", duration: "30 sec each leg" },
         ],
       },
+      durationWarning: "⚠️ Using fallback workout data.",
       fallback: true,
       error: error instanceof Error ? error.message : "Unknown error",
     };
