@@ -46,7 +46,10 @@ const AiCreatorView: React.FC = () => {
     setGeneratedWod(null);
 
     try {
-      const result = await generateWod(goal, equipment, duration, focus, selectedTypes);
+      // 🟩 Dauer als Zahl extrahieren
+      const numericDuration = Number(duration.replace(/\D/g, "")) || 20;
+
+      const result = await generateWod(goal, equipment, numericDuration, focus, selectedTypes);
 
       // ✅ Flexible Validierung: erkennt auch strength/metcon/hiit/etc.
       const hasWorkoutSection =
@@ -216,9 +219,17 @@ const AiCreatorView: React.FC = () => {
             <div className="bg-secondary p-4 rounded-lg">
               <h2 className="text-2xl font-bold text-accent">{generatedWod.metcon.name}</h2>
               <p className="text-sm text-text-dark font-semibold">
-                {generatedWod.metcon.format} ({generatedWod.metcon.duration})
+                {generatedWod.metcon.format} — Target: {generatedWod.metcon.targetDuration} min · Actual: {generatedWod.metcon.actualDuration || "?"} min
               </p>
               <p className="mt-2 whitespace-pre-wrap">{generatedWod.metcon.description}</p>
+
+              {/* 🟨 Dauerwarnung */}
+              {generatedWod.durationWarning && (
+                <div className="mt-3 text-yellow-400 bg-yellow-900/20 border border-yellow-700 p-3 rounded-lg">
+                  ⚠️ {generatedWod.durationWarning}
+                </div>
+              )}
+
               {generatedWod.metcon.scalingOptions && (
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-700 pt-4">
                   <div>
