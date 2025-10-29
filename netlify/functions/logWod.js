@@ -1,56 +1,57 @@
 // netlify/functions/logWod.js
+const { createClient } = require("@supabase/supabase-js");
+
 exports.handler = async (event) => {
-  const { createClient } = await import("@supabase/supabase-js");
-
-  const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_ANON_KEY
-  );
-
-  if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Method Not Allowed" };
-  }
+  console.log("📩 logWod called");
 
   try {
-    const { userId = "guest", date, wodData, result = "", notes = "" } =
-      JSON.parse(event.body || "{}");
-
-    if (!wodData) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "Missing wodData" }),
-      };
+    if (event.httpMethod !== "POST") {
+      return { statusCode: 405, body: JSON.stringify({ error: "Method Not Allowed" }) };
     }
 
-    const { data, error } = await supabase
-      .from("wod_logs")
-      .insert([
-        {
-          user_id: userId,
-          date: date || new Date().toISOString(),
-          wod_data: wodData,
-          result,
-          notes,
-        },
-      ])
-      .select()
-      .single();
+    const body = JSON.parse(event.body || "{}");
+    const { wod, userId = null, result = null, notes = null, date = null } = body;
 
-    if (error) throw error;
+    if (!wod) {
+      return { statusCode: 400, body: JSON.stringify({ error: "Missing workout data (wod)" }) };
+    }
+
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !supabaseKey) throw new Error("Missing Supabase credentials.");
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const now = new Date().toISOString();
+    const mainSection = wod.metcon || wod.endurance || wod.hiit || wod.strength || null;
+
+    const logEntry = {
+      created_at: date ? new Date(date).toISOString() : now,
+      user_id: userId,
+      goal: wod.goal || "N/A",
+      focus: Array.isArray(wod.focus) ? wod.focus.join(", ") : null,
+      equipment: Array.isArray(wod.equipment) ? wod.equipment.join(", ") : null,
+      target_duration: wod.targetDuration || mainSection?.targetDuration || null,
+      actual_duration: wod.actualDuration || mainSection?.actualDuration || null,
+      type:
+        (mainSection && Object.keys(wod).find((key) => wod[key] === mainSection)) ||
+        "unknown",
+      title: mainSection?.name || "Unnamed WOD",
+      description: mainSection?.description || "No description available",
+      result,
+      notes,
+      structure: JSON.stringify(wod),
+    };
+
+    const { data, error } = await supabase.from("wod_logs").insert([logEntry]).select();
+    if (error) throw new Error(error.message);
 
     return {
       statusCode: 200,
-      body: JSON.stringify({
-        ok: true,
-        message: "Workout logged successfully ✅",
-        entry: data,
-      }),
+      body: JSON.stringify({ success: true, message: "Workout logged", id: data[0]?.id }),
     };
-  } catch (e) {
-    console.error("🔥 logWod error:", e);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ ok: false, error: e.message }),
-    };
+  } catch (error) {
+    console.error("🔥 logWod error:", error);
+    return { statusCode: 500, body: JSON.stringify({ success: false, error: error.message }) };
   }
 };
