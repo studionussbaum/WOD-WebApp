@@ -6,7 +6,7 @@ import { Workout } from "../types";
 export const generateWod = async (
   goal: string,
   equipment: string[],
-  duration: number, // 🟩 jetzt Zahl statt string
+  duration: number,
   focus: string[],
   selectedTypes: string[]
 ) => {
@@ -35,31 +35,72 @@ export const generateWod = async (
       throw new Error(data.error);
     }
 
-    // 🟡 FLEXIBLE PRÜFUNG: Akzeptiere strength/metcon/endurance/hiit
+    // 🟡 FLEXIBLE PRÜFUNG: Akzeptiere alternative Feldnamen aus der AI
     const hasWorkoutSection =
       data?.wod ||
       data?.strength ||
       data?.metcon ||
       data?.endurance ||
-      data?.hiit;
+      data?.hiit ||
+      data?.mainWOD ||
+      data?.workout ||
+      data?.session;
 
-    if (!hasWorkoutSection || !data?.cooldown) {
-      console.warn("⚠️ Missing expected fields in AI response:", data);
-      throw new Error("Incomplete workout data from AI.");
+    if (!hasWorkoutSection) {
+      console.warn("⚠️ Missing expected workout section fields in AI response:", data);
     }
 
-    // 🟢 Zusätzliche optionale Felder übernehmen, falls vorhanden
-    return {
+    // 🟢 Vereinheitlichung des Hauptteils (z. B. falls AI 'mainWOD' zurückgibt)
+    const unifiedMain =
+      data.metcon ||
+      data.mainWOD ||
+      data.workout ||
+      data.session ||
+      null;
+
+    // 🧩 Zusammensetzen des vollständigen Rückgabeobjekts
+    const finalResult = {
       ...data,
+      metcon: data.metcon || unifiedMain || null,
       targetDuration: data.targetDuration || duration,
       actualDuration:
         data.actualDuration ||
+        unifiedMain?.actualDuration ||
         data.metcon?.actualDuration ||
         data.endurance?.actualDuration ||
         data.hiit?.actualDuration ||
         null,
       durationWarning: data.durationWarning || null,
     };
+
+    // 🧠 Minimal-Validierung: Warmup und Cooldown sollten existieren
+    if (!finalResult.warmup) {
+      console.warn("⚠️ No warmup section found — inserting default.");
+      finalResult.warmup = {
+        description: "General activation warm-up.",
+        duration: "8 minutes",
+        rounds: "2 rounds",
+        details: [
+          "1 min light cardio",
+          "10 Air Squats",
+          "10 Push-ups",
+          "Dynamic stretches",
+        ],
+      };
+    }
+
+    if (!finalResult.cooldown) {
+      console.warn("⚠️ No cooldown section found — inserting default.");
+      finalResult.cooldown = {
+        duration: "5 minutes",
+        stretches: [
+          { name: "Pigeon Pose", duration: "30 sec each side" },
+          { name: "Couch Stretch", duration: "30 sec each leg" },
+        ],
+      };
+    }
+
+    return finalResult;
   } catch (error) {
     console.error("🔥 Error generating WOD:", error);
 
