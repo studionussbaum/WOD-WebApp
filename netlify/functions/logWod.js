@@ -32,7 +32,6 @@ exports.handler = async (event) => {
       focus: Array.isArray(wod.focus) ? wod.focus.join(", ") : null,
       equipment: Array.isArray(wod.equipment) ? wod.equipment.join(", ") : null,
       target_duration: wod.targetDuration || mainSection?.targetDuration || null,
-      actual_duration: wod.actualDuration || mainSection?.actualDuration || null,
       type:
         (mainSection && Object.keys(wod).find((key) => wod[key] === mainSection)) ||
         "unknown",
