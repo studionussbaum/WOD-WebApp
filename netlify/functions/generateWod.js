@@ -77,7 +77,6 @@ Interpret the USER GOAL precisely and create a structured training plan around i
     "name": "Workout Title",
     "format": "AMRAP | For Time | EMOM",
     "targetDuration": ${targetDuration},
-    "actualDuration": "number (minutes)",
     "description": "Full single-line instruction with reps, rounds, and loads",
     "movements": [
       { "name": "string", "reps": "number or pattern", "load": "kg/cal", "equipment": ["string"] }
