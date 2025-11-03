@@ -246,4 +246,4 @@ const LogWorkoutView: React.FC<LogWorkoutViewProps> = ({ addWorkout, setView }) 
                   className="mt-1 block w-full bg-primary border border-gray-600 rounded-md shadow-sm py-2 px-3 text-text-light focus:outline-none focus:ring-accent focus:border-accent"
                 />
               </div>
-            </div
+            </div>
