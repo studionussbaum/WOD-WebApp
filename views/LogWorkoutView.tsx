@@ -247,3 +247,44 @@ const LogWorkoutView: React.FC<LogWorkoutViewProps> = ({ addWorkout, setView }) 
                 />
               </div>
             </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={addComponent}
+            className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            <PlusCircleIcon className="w-5 h-5" />
+            Add Component
+          </button>
+        </div>
+
+        <div className="bg-secondary p-4 rounded-lg space-y-4">
+          <div>
+            <label htmlFor="notes" className="block text-sm font-medium text-text-dark">
+              Notes
+            </label>
+            <textarea
+              id="notes"
+              name="notes"
+              value={formData.notes}
+              onChange={handleDataChange}
+              rows={2}
+              placeholder="e.g., Felt strong on the runs, broke up the pull-ups..."
+              className="mt-1 block w-full bg-primary border border-gray-600 rounded-md shadow-sm py-2 px-3 text-text-light focus:outline-none focus:ring-accent focus:border-accent"
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          className="w-full bg-accent hover:bg-accent-hover text-white font-bold py-3 px-4 rounded-lg transition-colors"
+        >
+          Log Workout
+        </button>
+      </form>
+    </div>
+  );
+};
+
+export default LogWorkoutView;
