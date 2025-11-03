@@ -9,7 +9,11 @@ import {
 } from "../types";
 import { PlusCircleIcon, TrashIcon } from "../components/icons";
 
-const getTodayDateString = () => new Date().toISOString().split("T")[0];
+// 🗓️ Datum ohne Zeitzone (YYYY-MM-DD)
+const getTodayDateString = () => {
+  const today = new Date();
+  return today.toISOString().split("T")[0];
+};
 
 interface LogWorkoutViewProps {
   addWorkout: (workout: Omit<Workout, "id">) => void;
@@ -26,7 +30,7 @@ const LogWorkoutView: React.FC<LogWorkoutViewProps> = ({ addWorkout, setView }) 
     notes: "",
   });
 
-  // 🧭 Input-Handler
+  // 🧭 Allgemeine Input-Handler
   const handleDataChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -34,7 +38,11 @@ const LogWorkoutView: React.FC<LogWorkoutViewProps> = ({ addWorkout, setView }) 
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleComponentChange = (index: number, field: "type" | "details" | "score", value: string) => {
+  const handleComponentChange = (
+    index: number,
+    field: "type" | "details" | "score",
+    value: string
+  ) => {
     const newComponents = [...formData.components];
     newComponents[index] = { ...newComponents[index], [field]: value };
     setFormData((prev) => ({ ...prev, components: newComponents }));
@@ -56,14 +64,17 @@ const LogWorkoutView: React.FC<LogWorkoutViewProps> = ({ addWorkout, setView }) 
   // 🟩 Supabase Logging-Funktion
   const handleSupabaseLog = async () => {
     try {
+      // 🔧 Datum ohne Zeitzonen-Shift
+      const cleanDate = new Date(formData.date).toISOString().split("T")[0];
+
       const payload = {
         wod: {
           goal: "Manual Entry",
           [formData.type.toLowerCase()]: {
             name: formData.title,
-            description: formData.components.map(
-              (c) => `${c.type}: ${c.details}`
-            ).join("\n"),
+            description: formData.components
+              .map((c) => `${c.type}: ${c.details}`)
+              .join("\n"),
           },
           focus: [formData.type],
           equipment: [],
@@ -71,7 +82,7 @@ const LogWorkoutView: React.FC<LogWorkoutViewProps> = ({ addWorkout, setView }) 
         userId: "demo-user-001",
         result: formData.components.map((c) => c.score || "").join(", "),
         notes: formData.notes,
-        date: formData.date,
+        date: cleanDate,
       };
 
       console.log("🚀 Sending manual log payload:", payload);
@@ -83,17 +94,17 @@ const LogWorkoutView: React.FC<LogWorkoutViewProps> = ({ addWorkout, setView }) 
       });
 
       const data = await response.json();
-      console.log("📡 Response:", data);
+      console.log("📡 Supabase Response:", data);
 
       if (data.success) {
         alert("✅ Workout successfully logged to Supabase!");
       } else {
+        console.error("❌ Supabase error:", data);
         alert("❌ Log failed: " + (data.error || "Unknown error"));
-        console.error("Supabase error:", data);
       }
     } catch (err) {
       console.error("🔥 Network or parsing error:", err);
-      alert("⚠️ Could not send to Supabase.");
+      alert("⚠️ Could not send to Supabase. Check console for details.");
     }
   };
 
@@ -110,10 +121,12 @@ const LogWorkoutView: React.FC<LogWorkoutViewProps> = ({ addWorkout, setView }) 
     setView("history");        // wechselt zur History-Ansicht
   };
 
+  // 🧱 Render
   return (
     <div className="p-4">
       <h1 className="text-3xl font-bold text-accent mb-6">Log New Workout</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* 🗓️ Allgemeine Infos */}
         <div className="bg-secondary p-4 rounded-lg space-y-4">
           <div>
             <label htmlFor="date" className="block text-sm font-medium text-text-dark">
@@ -179,6 +192,7 @@ const LogWorkoutView: React.FC<LogWorkoutViewProps> = ({ addWorkout, setView }) 
           </div>
         </div>
 
+        {/* 🏋️ Komponenten */}
         <div className="space-y-4">
           <h2 className="text-xl font-semibold text-text-light">Workout Components</h2>
           {formData.components.map((component, index) => (
@@ -259,6 +273,7 @@ const LogWorkoutView: React.FC<LogWorkoutViewProps> = ({ addWorkout, setView }) 
           </button>
         </div>
 
+        {/* 📝 Notes */}
         <div className="bg-secondary p-4 rounded-lg space-y-4">
           <div>
             <label htmlFor="notes" className="block text-sm font-medium text-text-dark">
@@ -276,6 +291,7 @@ const LogWorkoutView: React.FC<LogWorkoutViewProps> = ({ addWorkout, setView }) 
           </div>
         </div>
 
+        {/* 🏁 Submit */}
         <button
           type="submit"
           className="w-full bg-accent hover:bg-accent-hover text-white font-bold py-3 px-4 rounded-lg transition-colors"
